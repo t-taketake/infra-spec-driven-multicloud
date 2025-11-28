@@ -1,0 +1,85 @@
+name: Multi-Cloud Sync Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - 'modules/**'
+
+jobs:
+  check-sync:
+    name: Check AWS/GCP Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check AWS/GCP Module Parity
+        run: |
+          echo "Checking module parity..."
+          
+          # AWS modules
+          AWS_MODULES=$(find modules/aws -mindepth 1 -maxdepth 1 -type d | sort)
+          
+          # GCP modules
+          GCP_MODULES=$(find modules/gcp -mindepth 1 -maxdepth 1 -type d | sort)
+          
+          # AWS infra
+          AWS_INFRA=$(find infra/aws -mindepth 1 -maxdepth 1 -type d | sort)
+          
+          # GCP infra
+          GCP_INFRA=$(find infra/gcp -mindepth 1 -maxdepth 1 -type d | sort)
+          
+          echo "AWS Modules:"
+          echo "$AWS_MODULES"
+          echo ""
+          echo "GCP Modules:"
+          echo "$GCP_MODULES"
+          echo ""
+          echo "AWS Infra:"
+          echo "$AWS_INFRA"
+          echo ""
+          echo "GCP Infra:"
+          echo "$GCP_INFRA"
+          echo ""
+          
+          # Count modules
+          AWS_MODULE_COUNT=$(echo "$AWS_MODULES" | wc -l)
+          GCP_MODULE_COUNT=$(echo "$GCP_MODULES" | wc -l)
+          AWS_INFRA_COUNT=$(echo "$AWS_INFRA" | wc -l)
+          GCP_INFRA_COUNT=$(echo "$GCP_INFRA" | wc -l)
+          
+          echo "AWS Module Count: $AWS_MODULE_COUNT"
+          echo "GCP Module Count: $GCP_MODULE_COUNT"
+          echo "AWS Infra Count: $AWS_INFRA_COUNT"
+          echo "GCP Infra Count: $GCP_INFRA_COUNT"
+          
+          # Basic validation
+          if [ "$AWS_MODULE_COUNT" -lt 3 ] || [ "$GCP_MODULE_COUNT" -lt 3 ]; then
+            echo "⚠️ Warning: Expected at least 3 modules per cloud provider"
+          fi
+          
+          if [ "$AWS_INFRA_COUNT" -lt 3 ] || [ "$GCP_INFRA_COUNT" -lt 3 ]; then
+            echo "⚠️ Warning: Expected at least 3 infra directories per cloud provider"
+          fi
+          
+          echo "✅ Multi-cloud structure check completed"
+
+      - name: Check for Missing Counterparts
+        run: |
+          echo "Checking for missing counterparts..."
+          
+          # This is a simplified check - in production, you'd want more sophisticated logic
+          if [ -d "infra/aws/vpc" ] && [ ! -d "infra/gcp/vpc" ]; then
+            echo "❌ ERROR: AWS VPC exists but GCP VPC is missing"
+            exit 1
+          fi
+          
+          if [ -d "infra/gcp/vpc" ] && [ ! -d "infra/aws/vpc" ]; then
+            echo "❌ ERROR: GCP VPC exists but AWS VPC is missing"
+            exit 1
+          fi
+          
+          echo "✅ Basic counterpart check passed"

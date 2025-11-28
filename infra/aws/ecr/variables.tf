@@ -1,0 +1,14 @@
+variable "repository_name" {
+  description = "Name of the ECR repository"
+  type        = string
+  default     = "app-repo"
+}
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default = {
+    Environment = "dev"
+    ManagedBy   = "terraform"
+  }
+}
